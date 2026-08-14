@@ -1,0 +1,1812 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Covenant | recorded run</title><style>/* ============================================================================
+   Covenant design system
+
+   Deliberate choices, and why:
+
+   - Warm paper canvas + ink, not a dark neon console. Procurement and treasury
+     software is read in daylight by people reconciling numbers. It also keeps
+     this away from the default "AI product" palette.
+   - One accent (deep pine). Colour is reserved for meaning: settled, pending,
+     violated. Nothing is coloured for decoration.
+   - 3px corner radius. Not pill-shaped. Financial tables read as instruments.
+   - Tabular figures on every number so columns of money align to the digit.
+   - Hairline 1px rules instead of drop shadows. Elevation is used only where
+     something genuinely floats.
+   ========================================================================== */
+
+:root {
+  /* surfaces */
+  --paper:        #F7F6F3;
+  --surface:      #FFFFFF;
+  --surface-sunk: #F2F1ED;
+  --surface-ink:  #14181C;
+
+  /* ink */
+  --ink-1: #14181C;
+  --ink-2: #4A5560;
+  --ink-3: #78848F;
+  --ink-4: #9BA5AF;
+  --on-dark:      #F7F6F3;
+  --on-dark-dim:  #A8B2B8;
+
+  /* line */
+  --line:        #E3E0D9;
+  --line-strong: #CFCBC1;
+  --line-dark:   #2A3138;
+
+  /* semantic */
+  --pine:        #0D5D52;
+  --pine-hover:  #0A4A41;
+  --pine-wash:   #E8F0EE;
+  --pine-line:   #B6D0CA;
+
+  --amber:       #9A6400;
+  --amber-wash:  #FBF1DF;
+  --amber-line:  #E6CFA0;
+
+  --crimson:     #A32338;
+  --crimson-wash:#FBECEE;
+  --crimson-line:#EBC3C9;
+
+  --slate-wash:  #EEF1F3;
+
+  /* type */
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "SF Mono", ui-monospace, "JetBrains Mono", "Menlo", "Consolas", monospace;
+
+  /* space */
+  --r: 3px;
+  --r-lg: 5px;
+  --shadow-pop: 0 1px 2px rgba(20,24,28,.06), 0 8px 24px -8px rgba(20,24,28,.16);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink-1);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv05" 1, "ss01" 1;
+}
+
+/* Every number in this product is financial. Align them. */
+.num, td.num, .money, .metric-value, .mono {
+  font-variant-numeric: tabular-nums;
+}
+.mono { font-family: var(--mono); font-size: .92em; letter-spacing: -.01em; }
+
+h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -.014em; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+
+::selection { background: var(--pine); color: #fff; }
+
+:where(a, button, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--pine);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ---------------------------------------------------------------- shell -- */
+
+.app { display: flex; flex-direction: column; min-height: 100%; }
+
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 20px; height: 52px;
+  background: var(--surface-ink); color: var(--on-dark);
+  border-bottom: 1px solid var(--line-dark);
+  position: sticky; top: 0; z-index: 40;
+}
+
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 600; letter-spacing: -.02em; font-size: 14.5px; }
+.brand-mark {
+  width: 18px; height: 18px; border-radius: 2px; flex: none;
+  background: var(--on-dark); color: var(--surface-ink);
+  display: grid; place-items: center; font-size: 11px; font-weight: 700;
+}
+.brand-sub {
+  color: var(--on-dark-dim); font-weight: 400; font-size: 12.5px;
+  padding-left: 12px; margin-left: 4px; border-left: 1px solid var(--line-dark);
+}
+
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+
+.chainchip {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11.5px; color: var(--on-dark-dim);
+  font-variant-numeric: tabular-nums;
+}
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #3FBF8F; flex: none; }
+.dot.idle { background: #6B7680; }
+.dot.pulse { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+
+.wallet-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.07); border: 1px solid var(--line-dark);
+  padding: 4px 9px; border-radius: var(--r); font-size: 11.5px;
+  font-family: var(--mono); color: var(--on-dark);
+}
+
+/* ---------------------------------------------------------------- layout - */
+
+.workspace {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr) 292px;
+  gap: 0;
+  flex: 1;
+  align-items: start;
+}
+
+/* stage rail */
+.rail { position: sticky; top: 52px; padding: 22px 0 22px 20px; align-self: start; }
+.rail-label {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-3); font-weight: 600; margin-bottom: 12px; padding-left: 2px;
+}
+.stage-list { list-style: none; margin: 0; padding: 0; }
+.stage {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 5px 0; position: relative; color: var(--ink-3);
+  font-size: 12.8px; line-height: 1.35;
+}
+.stage-node {
+  width: 15px; height: 15px; border-radius: 50%; flex: none; margin-top: 1px;
+  border: 1.5px solid var(--line-strong); background: var(--paper);
+  display: grid; place-items: center; font-size: 9px; color: var(--surface);
+  transition: background .18s ease, border-color .18s ease;
+}
+.stage::before {
+  content: ""; position: absolute; left: 7px; top: 21px; bottom: -5px;
+  width: 1px; background: var(--line);
+}
+.stage:last-child::before { display: none; }
+.stage.done { color: var(--ink-2); }
+.stage.done .stage-node { background: var(--pine); border-color: var(--pine); }
+.stage.done::before { background: var(--pine-line); }
+.stage.active { color: var(--ink-1); font-weight: 550; }
+.stage.active .stage-node { border-color: var(--pine); box-shadow: 0 0 0 3px var(--pine-wash); }
+
+/* main column */
+.main { padding: 22px 26px 64px; min-width: 0; }
+
+/* context panel */
+.context {
+  position: sticky; top: 52px; align-self: start;
+  padding: 22px 20px 22px 0; display: flex; flex-direction: column; gap: 14px;
+}
+
+/* ----------------------------------------------------------------- card -- */
+
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.card-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+}
+.card-title { font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
+.card-body { padding: 16px; }
+.card-body.tight { padding: 12px 16px; }
+
+.eyebrow {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-3); font-weight: 600;
+}
+
+.section-head { margin-bottom: 14px; }
+.section-head h2 { font-size: 21px; letter-spacing: -.02em; }
+.section-head .sub { color: var(--ink-2); font-size: 14px; margin-top: 3px; }
+
+/* --------------------------------------------------------------- inputs -- */
+
+.composer { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.composer textarea {
+  width: 100%; border: 0; resize: vertical; min-height: 104px;
+  padding: 16px; font: inherit; font-size: 14.5px; line-height: 1.55;
+  color: var(--ink-1); background: transparent; display: block;
+}
+.composer textarea:focus { outline: none; }
+.composer textarea::placeholder { color: var(--ink-4); }
+.composer-foot {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px 10px 16px; border-top: 1px solid var(--line);
+  background: var(--surface-sunk);
+}
+.hint { font-size: 13px; color: var(--ink-3); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px; border-radius: var(--r); cursor: pointer;
+  border: 1px solid transparent; font-size: 13px; font-weight: 550;
+  transition: background .15s ease, border-color .15s ease, opacity .15s ease;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--pine); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--pine-hover); }
+.btn-ghost { background: transparent; border-color: var(--line-strong); color: var(--ink-1); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-sunk); }
+.btn-quiet { background: transparent; color: var(--ink-2); padding: 6px 8px; }
+.btn-quiet:hover:not(:disabled) { color: var(--ink-1); background: var(--surface-sunk); }
+.btn:disabled { opacity: .42; cursor: not-allowed; }
+.btn-lg { padding: 9px 16px; font-size: 13.5px; }
+
+.samples { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.sample {
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  padding: 5px 9px; border-radius: var(--r); font-size: 12px; color: var(--ink-2);
+  text-align: left;
+}
+.sample:hover { border-color: var(--line-strong); color: var(--ink-1); }
+
+/* ------------------------------------------------------------ constraint - */
+
+.constraint-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 8px; }
+.constraint {
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 9px 11px; background: var(--surface);
+}
+.constraint .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-4); font-weight: 600; }
+.constraint .v { font-size: 15.5px; font-weight: 550; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.constraint.hard { border-left: 2px solid var(--ink-1); }
+.constraint.soft { border-left: 2px solid var(--line-strong); }
+
+.pref-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.pref {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 4px 9px; font-size: 12px; background: var(--surface-sunk); color: var(--ink-2);
+}
+.pref b { font-weight: 600; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- table -- */
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+table.grid { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px; }
+table.grid th {
+  text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-4); font-weight: 600; padding: 9px 12px;
+  border-bottom: 1px solid var(--line); background: var(--surface-sunk);
+  white-space: nowrap; position: sticky; top: 0;
+}
+table.grid td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.grid tr:last-child td { border-bottom: 0; }
+table.grid th.right, table.grid td.right { text-align: right; }
+table.grid tr.excluded td { color: var(--ink-4); background: repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(0,0,0,.012) 8px, rgba(0,0,0,.012) 16px); }
+table.grid tr.winner td { background: var(--pine-wash); }
+table.grid tr.winner td:first-child { box-shadow: inset 2px 0 0 var(--pine); }
+
+.sup-name { font-weight: 550; display: flex; align-items: center; gap: 7px; }
+.sup-meta { color: var(--ink-3); font-size: 12.5px; margin-top: 2px; }
+
+/* ---------------------------------------------------------------- badge -- */
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 7px; border-radius: var(--r); font-size: 11px; font-weight: 550;
+  border: 1px solid; white-space: nowrap; line-height: 1.5;
+}
+.badge.ok      { background: var(--pine-wash);    color: var(--pine);    border-color: var(--pine-line); }
+.badge.warn    { background: var(--amber-wash);   color: var(--amber);   border-color: var(--amber-line); }
+.badge.bad     { background: var(--crimson-wash); color: var(--crimson); border-color: var(--crimson-line); }
+.badge.neutral { background: var(--slate-wash);   color: var(--ink-2);   border-color: var(--line-strong); }
+
+.violation { font-size: 12.5px; color: var(--crimson); display: flex; gap: 5px; margin-top: 3px; }
+.violation .marker { flex: none; font-weight: 700; }
+.satisfied { font-size: 12.5px; color: var(--ink-3); }
+
+/* ---------------------------------------------------------- negotiation -- */
+
+.neg-grid { display: grid; gap: 12px; }
+
+.neg-card { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
+.neg-card.agreed { border-color: var(--pine-line); }
+.neg-card.failed { border-color: var(--line); }
+
+.neg-head {
+  display: flex; align-items: center; gap: 12px; padding: 11px 14px;
+  border-bottom: 1px solid var(--line); background: var(--surface-sunk);
+}
+.neg-head .who { font-weight: 600; font-size: 13.5px; }
+.neg-head .where { color: var(--ink-3); font-size: 11.5px; }
+.neg-head .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+.thread { padding: 6px 14px 12px; }
+
+.turn {
+  display: grid; grid-template-columns: 76px 1fr auto; gap: 12px;
+  padding: 9px 0; border-bottom: 1px dashed var(--line);
+  animation: turnIn .26s cubic-bezier(.2,.7,.3,1) both;
+}
+.turn:last-child { border-bottom: 0; }
+@keyframes turnIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+.turn-actor {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em;
+  font-weight: 650; padding-top: 2px;
+}
+.turn-actor.agent { color: var(--pine); }
+.turn-actor.supplier { color: var(--ink-3); }
+.turn-msg { font-size: 14px; line-height: 1.45; }
+.turn-why { font-size: 12.5px; color: var(--ink-3); margin-top: 3px; }
+.turn-price {
+  font-family: var(--mono); font-size: 14px; font-weight: 600;
+  font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: 1px;
+}
+.turn.settle .turn-msg { font-weight: 550; }
+.turn.reject .turn-msg { color: var(--crimson); }
+
+.ledger {
+  display: flex; gap: 20px; padding: 10px 14px;
+  border-top: 1px solid var(--line); background: var(--surface-sunk); flex-wrap: wrap;
+}
+.ledger .item { font-size: 12.5px; color: var(--ink-3); }
+.ledger .item b { display: block; font-size: 16px; color: var(--ink-1); font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 1px; }
+.ledger .item b.pos { color: var(--pine); }
+
+/* ------------------------------------------------------- recommendation -- */
+
+.rec { border: 1px solid var(--pine-line); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
+.rec-head {
+  padding: 14px 18px; background: var(--pine); color: #fff;
+  display: flex; align-items: center; gap: 12px;
+}
+.rec-head .eyebrow { color: rgba(255,255,255,.72); }
+.rec-head h3 { font-size: 17px; margin-top: 2px; letter-spacing: -.02em; }
+.rec-head .right { margin-left: auto; text-align: right; }
+.rec-head .amt { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -.025em; }
+.rec-head .amt-sub { font-size: 11.5px; color: rgba(255,255,255,.72); }
+
+.rec-metrics { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
+.rec-metric { padding: 12px 16px; border-right: 1px solid var(--line); }
+.rec-metric:last-child { border-right: 0; }
+.rec-metric .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-4); font-weight: 600; }
+.rec-metric .v { font-size: 20px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.rec-metric .v small { font-size: 12px; font-weight: 500; color: var(--ink-3); margin-left: 3px; }
+
+.why { padding: 14px 18px; }
+.why ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 7px; }
+.why li { display: grid; grid-template-columns: 16px 1fr; gap: 9px; font-size: 14px; line-height: 1.45; }
+.why .tick { color: var(--pine); font-weight: 700; }
+.why .kind {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--ink-4); font-weight: 600; margin-right: 6px;
+}
+
+.rejected-note {
+  margin: 0 18px 16px; padding: 10px 12px; border-radius: var(--r);
+  background: var(--surface-sunk); border: 1px solid var(--line);
+  font-size: 12.5px; color: var(--ink-2);
+}
+.rejected-note .row { display: flex; gap: 7px; padding: 2px 0; }
+.rejected-note .x { color: var(--crimson); font-weight: 700; flex: none; }
+
+/* -------------------------------------------------------------- approval - */
+
+.approval { border: 1px solid var(--line-strong); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
+.approval-head { padding: 13px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+.approval-body { padding: 16px; }
+
+.terms { display: grid; gap: 0; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.term-row {
+  display: grid; grid-template-columns: 180px 1fr; gap: 14px;
+  padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 14px;
+}
+.term-row:last-child { border-bottom: 0; }
+.term-row:nth-child(odd) { background: var(--surface-sunk); }
+.term-row .k { color: var(--ink-3); }
+.term-row .v { font-weight: 550; font-variant-numeric: tabular-nums; word-break: break-all; }
+
+.guardrails { margin-top: 14px; border: 1px solid var(--amber-line); background: var(--amber-wash); border-radius: var(--r); padding: 12px 14px; }
+.guardrails h4 { font-size: 12px; color: var(--amber); text-transform: uppercase; letter-spacing: .07em; }
+.guardrails ul { margin: 8px 0 0; padding-left: 16px; font-size: 12.5px; color: var(--ink-2); display: grid; gap: 4px; }
+.guardrails code { font-family: var(--mono); font-size: 11.5px; background: rgba(0,0,0,.05); padding: 1px 4px; border-radius: 2px; }
+
+.approve-bar {
+  display: flex; align-items: center; gap: 12px; margin-top: 16px;
+  padding-top: 14px; border-top: 1px solid var(--line);
+}
+.approve-bar .spend { font-size: 12.5px; color: var(--ink-2); }
+.approve-bar .spend b { font-size: 15px; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- escrow - */
+
+.flow { display: grid; gap: 0; }
+.flow-step {
+  display: grid; grid-template-columns: 26px 1fr auto; gap: 12px;
+  padding: 11px 0; position: relative; align-items: start;
+}
+.flow-step::before {
+  content: ""; position: absolute; left: 12px; top: 30px; bottom: -11px;
+  width: 1px; background: var(--line);
+}
+.flow-step:last-child::before { display: none; }
+.flow-node {
+  width: 25px; height: 25px; border-radius: 50%; flex: none;
+  border: 1px solid var(--line-strong); background: var(--surface);
+  display: grid; place-items: center; font-size: 11px; color: var(--ink-4);
+  font-weight: 600; z-index: 1;
+}
+.flow-step.done .flow-node { background: var(--pine); border-color: var(--pine); color: #fff; }
+.flow-step.done::before { background: var(--pine-line); }
+.flow-step.active .flow-node { border-color: var(--pine); color: var(--pine); box-shadow: 0 0 0 3px var(--pine-wash); }
+.flow-step.pending { opacity: .5; }
+.flow-label { font-size: 14.5px; font-weight: 550; }
+.flow-detail { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+.flow-right { text-align: right; font-size: 12px; }
+
+.txlink {
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+  background: var(--surface-sunk); border: 1px solid var(--line);
+  padding: 2px 6px; border-radius: var(--r); display: inline-block;
+}
+
+
+/* ------------------------------------------------------------ reputation - */
+
+.rep-delta { display: flex; align-items: center; gap: 14px; padding: 4px 0; }
+.rep-num {
+  font-size: 30px; font-weight: 650; letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.rep-num.before { color: var(--ink-4); }
+.rep-num.after { color: var(--pine); }
+.rep-arrow { color: var(--ink-4); font-size: 17px; }
+.rep-gain {
+  font-size: 12.5px; font-weight: 600; color: var(--pine);
+  background: var(--pine-wash); border: 1px solid var(--pine-line);
+  padding: 2px 8px; border-radius: var(--r); font-variant-numeric: tabular-nums;
+}
+.rep-bar { height: 5px; background: var(--surface-sunk); border-radius: 3px; overflow: hidden; margin-top: 12px; border: 1px solid var(--line); }
+.rep-fill { height: 100%; background: var(--pine); border-radius: 3px; transition: width 1.1s cubic-bezier(.2,.75,.3,1); }
+.rep-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+.rep-stat { border: 1px solid var(--line); border-radius: var(--r); padding: 9px 11px; }
+.rep-stat .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-4); font-weight: 600; }
+.rep-stat .v { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+/* ------------------------------------------------------------- context --- */
+
+.ctx-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px 14px; }
+.ctx-title { font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--ink-4); font-weight: 600; margin-bottom: 9px; }
+.ctx-row { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13.5px; }
+.ctx-row .k { color: var(--ink-3); }
+.ctx-row .v { font-weight: 550; font-variant-numeric: tabular-nums; text-align: right; }
+.ctx-row .v.mono { font-weight: 500; }
+.ctx-divider { height: 1px; background: var(--line); margin: 9px -14px; }
+
+.meter { height: 4px; background: var(--surface-sunk); border: 1px solid var(--line); border-radius: 3px; overflow: hidden; margin-top: 7px; }
+.meter-fill { height: 100%; background: var(--ink-1); transition: width .5s ease; }
+.meter-fill.warn { background: var(--amber); }
+
+/* --------------------------------------------------------------- states -- */
+
+.empty {
+  border: 1px dashed var(--line-strong); border-radius: var(--r-lg);
+  padding: 30px 20px; text-align: center; color: var(--ink-3); font-size: 13px;
+  background: var(--surface);
+}
+
+.working { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); padding: 14px 0; }
+.spinner {
+  width: 13px; height: 13px; border-radius: 50%; flex: none;
+  border: 1.5px solid var(--line-strong); border-top-color: var(--pine);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.banner {
+  display: flex; align-items: flex-start; gap: 9px; padding: 10px 13px;
+  border-radius: var(--r); font-size: 12.5px; margin-bottom: 14px; border: 1px solid;
+}
+.banner.err  { background: var(--crimson-wash); border-color: var(--crimson-line); color: var(--crimson); }
+.banner.info { background: var(--slate-wash); border-color: var(--line-strong); color: var(--ink-2); }
+
+.disclosure {
+  margin-top: 30px; padding: 14px 16px; border: 1px solid var(--line);
+  border-left: 2px solid var(--line-strong);
+  border-radius: var(--r); background: var(--surface);
+  font-size: 13px; color: var(--ink-3); line-height: 1.6;
+}
+.disclosure b { color: var(--ink-2); font-weight: 600; }
+
+.stack { display: grid; gap: 16px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.spacer { flex: 1; }
+.fade-in { animation: fadeIn .3s ease both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ------------------------------------------------------------ responsive - */
+
+@media (max-width: 1180px) {
+  .workspace { grid-template-columns: 178px minmax(0,1fr); }
+  .context {
+    grid-column: 1 / -1; position: static; flex-direction: row; flex-wrap: wrap;
+    padding: 0 26px 26px; }
+  .context .ctx-card { flex: 1 1 240px; }
+  .rec-metrics { grid-template-columns: repeat(2, 1fr); }
+  .rec-metric:nth-child(2) { border-right: 0; }
+  .rec-metric:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+}
+
+@media (max-width: 820px) {
+  .workspace { grid-template-columns: minmax(0,1fr); }
+  .rail {
+    position: static; padding: 14px 16px; overflow-x: auto;
+    border-bottom: 1px solid var(--line); background: var(--surface);
+  }
+  .rail-label { display: none; }
+  .stage-list { display: flex; gap: 18px; min-width: max-content; }
+  .stage { padding: 0; white-space: nowrap; }
+  .stage::before { left: auto; right: -13px; top: 7px; bottom: auto; width: 12px; height: 1px; }
+  .main { padding: 16px 16px 48px; }
+  .context { padding: 0 16px 26px; }
+  .turn { grid-template-columns: 1fr; gap: 3px; }
+  .turn-price { grid-row: 1; justify-self: end; margin-top: -20px; }
+  .rec-head { flex-wrap: wrap; }
+  .rec-head .right { margin-left: 0; text-align: left; }
+  .term-row { grid-template-columns: 1fr; gap: 2px; }
+  .rec-metrics { grid-template-columns: 1fr 1fr; }
+  .topbar { padding: 0 14px; gap: 10px; }
+  .brand-sub, .chainchip .label { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ------------------------------------------------------- spending ceiling -
+
+   The product's central claim gets the product's most deliberate component.
+   Reads as an instrument panel: a limit, a fill against it, and the headroom
+   left. Semantic colour only - pine for within-limit, crimson for rejected.
+   ------------------------------------------------------------------------ */
+
+.ceiling {
+  margin-top: 16px; border: 1px solid var(--line-strong);
+  border-radius: var(--r); background: var(--surface-sunk); padding: 14px 16px;
+}
+.ceiling-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+
+.ceiling-track {
+  height: 9px; background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: 2px; overflow: hidden; position: relative;
+}
+.ceiling-fill {
+  height: 100%; background: var(--pine);
+  transition: width .8s cubic-bezier(.2,.75,.3,1);
+}
+.ceiling-track::after {
+  content: ""; position: absolute; right: 0; top: -3px; bottom: -3px;
+  width: 2px; background: var(--ink-1);
+}
+
+.ceiling-figures {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin-top: 12px;
+}
+.cfig .k {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-4); font-weight: 600;
+}
+.cfig .v {
+  font-size: 22px; font-weight: 600; margin-top: 2px;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+.cfig .v.strong { color: var(--pine); }
+.cfig .v.pos { color: var(--ink-2); }
+
+.ceiling-note {
+  font-size: 12px; color: var(--ink-3); line-height: 1.5;
+  margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line);
+}
+
+.ceiling-test { margin-top: 12px; }
+
+/* rejection proof */
+.proof {
+  margin-top: 12px; border: 1px solid var(--crimson-line);
+  background: var(--crimson-wash); border-radius: var(--r); overflow: hidden;
+}
+.proof-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 13px; border-bottom: 1px solid var(--crimson-line);
+  font-weight: 600; font-size: 13px; color: var(--crimson);
+}
+.proof-x { font-weight: 700; }
+.proof-rows { padding: 4px 13px 10px; }
+.proof-rows > div {
+  display: grid; grid-template-columns: 118px 1fr; gap: 10px;
+  padding: 4px 0; font-size: 12.5px; border-bottom: 1px dashed var(--crimson-line);
+}
+.proof-rows > div:last-child { border-bottom: 0; }
+.proof-rows .k { color: var(--ink-3); }
+.proof-rows .v { font-weight: 550; word-break: break-all; }
+.proof-note {
+  font-size: 12px; color: var(--ink-2); line-height: 1.5;
+  padding: 10px 13px; background: rgba(255,255,255,.5);
+  border-top: 1px solid var(--crimson-line);
+}
+
+@media (max-width: 820px) {
+  .ceiling-figures { grid-template-columns: 1fr; gap: 8px; }
+  .cfig { display: flex; align-items: baseline; justify-content: space-between; }
+  .cfig .v { font-size: 16px; }
+  .proof-rows > div { grid-template-columns: 1fr; gap: 1px; }
+}
+
+/* ------------------------------------------------------------- authority -
+   Buyer and agent are different keys. Showing both addresses side by side is
+   the whole security argument in one glance.
+   ------------------------------------------------------------------------ */
+.authority {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px;
+  align-items: center; margin-bottom: 14px; padding: 11px 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+}
+.auth-party .k {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--ink-4); font-weight: 600;
+}
+.auth-party .v { font-size: 12.5px; margin-top: 2px; font-weight: 550; }
+.auth-party.agent .v { color: var(--pine); }
+.auth-arrow {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-4); font-weight: 600; white-space: nowrap;
+  padding: 0 4px; position: relative;
+}
+.auth-arrow::before, .auth-arrow::after {
+  content: ""; position: absolute; top: 50%; width: 10px; height: 1px; background: var(--line-strong);
+}
+.auth-arrow::before { left: -10px; }
+.auth-arrow::after { right: -10px; }
+@media (max-width: 820px) {
+  .authority { grid-template-columns: 1fr; gap: 8px; }
+  .auth-arrow { display: none; }
+}
+
+.auth-caps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; }
+.auth-caps li {
+  display: grid; grid-template-columns: 13px 1fr; gap: 6px;
+  font-size: 11.5px; color: var(--ink-2); line-height: 1.4;
+}
+.auth-caps .yes { color: var(--pine); font-weight: 700; }
+.auth-caps .no  { color: var(--crimson); font-weight: 700; }
+.auth-caps li:has(.no) { color: var(--crimson); font-weight: 550; }
+.authority { align-items: start; }
+
+/* ==========================================================================
+   Final pass: hero, numbered rail, deal economics, Counsel.
+   Same restraint as the rest - no gradients, no glass, one accent, semantic
+   colour only. Density raised so a 1440–1920px screen reads as a working desk
+   rather than a landing page.
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ hero - */
+
+.req-section { margin-bottom: 26px; }
+
+.hero {
+  display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
+  gap: 28px; align-items: start;
+  padding-bottom: 26px; margin-bottom: 26px;
+  border-bottom: 1px solid var(--line);
+}
+.hero-copy h1 {
+  font-size: 30px; line-height: 1.2; letter-spacing: -.028em;
+  margin: 8px 0 12px; max-width: 22ch;
+}
+.hero-copy p { font-size: 14.5px; line-height: 1.6; color: var(--ink-2); max-width: 60ch; }
+
+.hero-chain {
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  background: var(--surface); padding: 14px 16px;
+}
+.hc-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.hc-k { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-4); font-weight: 600; }
+.hc-v { font-size: 12.5px; font-weight: 550; }
+.hc-sep {
+  display: flex; align-items: center; gap: 8px; margin: 9px 0;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--ink-4);
+}
+.hc-sep::before, .hc-sep::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+.hc-caps { list-style: none; margin: 13px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); display: grid; gap: 5px; }
+.hc-caps li { display: grid; grid-template-columns: 14px 1fr; gap: 7px; font-size: 12.5px; color: var(--ink-2); }
+.hc-caps i { font-style: normal; font-weight: 700; }
+.hc-caps i.ok { color: var(--pine); }
+.hc-caps i.no { color: var(--crimson); }
+.hc-caps li:last-child { color: var(--crimson); font-weight: 550; }
+
+/* ------------------------------------------------------- numbered rail --- */
+
+.stage { align-items: center; gap: 11px; padding: 6px 0; }
+.stage::before { left: 12px; top: 30px; bottom: -6px; }
+.stage-n {
+  width: 25px; height: 25px; border-radius: 3px; flex: none;
+  border: 1px solid var(--line-strong); background: var(--paper);
+  display: grid; place-items: center;
+  font-size: 10.5px; font-weight: 650; color: var(--ink-4);
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+  transition: background .18s ease, border-color .18s ease, color .18s ease;
+}
+.stage.done .stage-n { background: var(--pine); border-color: var(--pine); color: #fff; }
+.stage.active .stage-n { border-color: var(--pine); color: var(--pine); background: var(--pine-wash); }
+.stage-body { display: flex; flex-direction: column; line-height: 1.25; }
+.stage-label { font-size: 14px; }
+.stage-by {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--ink-4); font-weight: 600; margin-top: 1px;
+}
+.stage.active .stage-by { color: var(--pine); }
+
+/* -------------------------------------------------------------- economics - */
+
+.econ { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
+.econ-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13.5px;
+}
+.econ-row:last-child { border-bottom: 0; }
+.econ-row .k { color: var(--ink-2); }
+.econ-row .k small { color: var(--ink-4); font-size: 11.5px; margin-left: 6px; }
+.econ-row .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.econ-row .v small { font-size: 12px; color: var(--ink-3); font-weight: 500; margin-left: 4px; }
+.econ-row.highlight { background: var(--pine-wash); }
+.econ-row.highlight .v.pos { color: var(--pine); }
+.econ-row.fee { background: var(--surface-sunk); }
+.econ-note { font-size: 12px; color: var(--ink-3); line-height: 1.55; margin-top: 10px; }
+
+/* -------------------------------------------------------------- counsel - */
+
+.counsel-trigger {
+  border: 1px solid var(--line-dark); background: rgba(255,255,255,.07);
+  color: var(--on-dark); padding: 5px 11px; border-radius: var(--r);
+  font-size: 12px; font-weight: 550; cursor: pointer; letter-spacing: -.005em;
+  transition: background .15s ease;
+}
+.counsel-trigger:hover { background: rgba(255,255,255,.14); }
+.counsel-trigger.on { background: var(--on-dark); color: var(--surface-ink); border-color: var(--on-dark); }
+
+.counsel {
+  position: fixed; top: 52px; right: 0; bottom: 0; width: 400px; z-index: 50;
+  background: var(--surface); border-left: 1px solid var(--line-strong);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform .22s cubic-bezier(.2,.7,.3,1);
+  box-shadow: var(--shadow-pop); visibility: hidden;
+}
+.counsel.open { transform: none; visibility: visible; }
+
+.counsel-head {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--surface-sunk);
+}
+.counsel-title { font-size: 13.5px; font-weight: 600; letter-spacing: -.01em; }
+.counsel-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+.counsel-head .btn { margin-left: auto; }
+
+.counsel-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.counsel-intro p { font-size: 13px; color: var(--ink-2); line-height: 1.55; margin-bottom: 10px; }
+.counsel-bound {
+  font-size: 12px; color: var(--ink-3); border-left: 2px solid var(--line-strong);
+  padding: 8px 0 8px 11px; background: var(--surface-sunk); border-radius: 0 var(--r) var(--r) 0;
+}
+
+.cmsg { animation: fadeIn .2s ease both; }
+.cmsg.user {
+  align-self: flex-end; max-width: 88%; background: var(--surface-ink); color: var(--on-dark);
+  padding: 9px 12px; border-radius: var(--r-lg) var(--r-lg) 2px var(--r-lg); font-size: 13px;
+}
+.cmsg.counsel { max-width: 100%; }
+.cmsg-who {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-4); font-weight: 650; margin-bottom: 5px;
+}
+.cmsg-text p { font-size: 14px; line-height: 1.62; margin-bottom: 7px; }
+.cmsg-text p:last-child { margin-bottom: 0; }
+.cmsg-text strong, .cmsg-text b { font-weight: 600; }
+.cmsg.refused .cmsg-text {
+  border-left: 2px solid var(--crimson); padding: 9px 0 9px 11px;
+  background: var(--crimson-wash); border-radius: 0 var(--r) var(--r) 0; color: var(--ink-1);
+}
+.cmsg.err .cmsg-text { color: var(--crimson); }
+.cmsg-src {
+  font-size: 10.5px; color: var(--ink-4); margin-top: 6px;
+  font-family: var(--mono); letter-spacing: -.01em;
+}
+
+.counsel-sugg {
+  display: flex; flex-direction: column; gap: 5px; padding: 11px 16px;
+  border-top: 1px solid var(--line); background: var(--surface-sunk);
+}
+.sugg {
+  text-align: left; border: 1px solid var(--line); background: var(--surface);
+  padding: 9px 11px; border-radius: var(--r); font-size: 13.5px; color: var(--ink-2); cursor: pointer;
+}
+.sugg:hover:not(:disabled) { border-color: var(--line-strong); color: var(--ink-1); }
+.sugg:disabled { opacity: .5; cursor: not-allowed; }
+
+.counsel-input { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.counsel-input input {
+  flex: 1; min-width: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
+  padding: 8px 11px; font: inherit; font-size: 13px; color: var(--ink-1); background: var(--surface);
+}
+.counsel-input input:focus { outline: 2px solid var(--pine); outline-offset: 1px; border-color: transparent; }
+
+/* --------------------------------------------------------- wide screens -- */
+
+@media (min-width: 1600px) {
+  .workspace { grid-template-columns: 236px minmax(0, 1fr) 320px; }
+  .main { padding: 26px 40px 72px; }
+  .hero-copy h1 { font-size: 34px; }
+}
+
+@media (max-width: 1180px) {
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .hero-copy h1 { font-size: 26px; }
+}
+
+@media (max-width: 820px) {
+  .counsel { width: 100%; top: 0; }
+  .hero-copy h1 { font-size: 23px; }
+  .econ-row { flex-direction: column; gap: 2px; }
+}
+
+/* -------------------------------------------------------------- entry --- */
+
+.entry {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 26px;
+  padding: 40px 24px; background: var(--paper);
+}
+.entry-card {
+  width: 100%; max-width: 620px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 34px 36px;
+}
+.entry-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 600; font-size: 15px; letter-spacing: -.02em; margin-bottom: 22px;
+}
+.entry-brand .brand-mark { background: var(--surface-ink); color: var(--on-dark); }
+.entry-card h1 {
+  font-size: 29px; line-height: 1.22; letter-spacing: -.028em; max-width: 20ch;
+}
+.entry-sub {
+  font-size: 15px; line-height: 1.6; color: var(--ink-2);
+  margin-top: 14px; max-width: 54ch;
+}
+.entry-actions { display: flex; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
+.btn-xl { padding: 11px 20px; font-size: 14.5px; }
+.entry-err {
+  margin-top: 14px; font-size: 13px; color: var(--crimson);
+  background: var(--crimson-wash); border: 1px solid var(--crimson-line);
+  padding: 10px 12px; border-radius: var(--r);
+}
+.entry-note {
+  margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line);
+  font-size: 13px; color: var(--ink-3); line-height: 1.6;
+}
+.entry-facts {
+  list-style: none; margin: 0; padding: 0; width: 100%; max-width: 620px;
+  display: grid; gap: 9px;
+}
+.entry-facts li { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.entry-facts b { color: var(--ink-1); font-weight: 600; }
+
+.wp-mode {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+  font-weight: 650; color: var(--on-dark-dim);
+}
+.wp-sep { width: 1px; height: 11px; background: var(--line-dark); display: inline-block; }
+
+/* -------------------------------------------------- counsel control --- */
+
+.counsel-fab {
+  position: fixed; right: 22px; bottom: 22px; z-index: 60;
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 16px 11px 13px; cursor: pointer;
+  background: var(--surface-ink); color: var(--on-dark);
+  border: 1px solid var(--surface-ink); border-radius: 5px;
+  font-size: 13.5px; font-weight: 550; letter-spacing: -.005em;
+  box-shadow: 0 1px 2px rgba(20,24,28,.10), 0 10px 26px -10px rgba(20,24,28,.42);
+  transition: transform .16s cubic-bezier(.2,.7,.3,1), background .16s ease;
+}
+.counsel-fab:hover { transform: translateY(-1px); background: #1D242B; }
+.counsel-fab:active { transform: translateY(0); }
+.counsel-fab.on { background: var(--pine); border-color: var(--pine); }
+.counsel-fab svg { flex: none; }
+.fab-label { line-height: 1; }
+
+.counsel-id { display: flex; align-items: flex-start; gap: 11px; }
+.counsel-mark {
+  width: 30px; height: 30px; border-radius: 4px; flex: none;
+  display: grid; place-items: center;
+  background: var(--surface-ink); color: var(--on-dark);
+}
+.counsel-title { font-size: 14.5px; font-weight: 600; letter-spacing: -.012em; }
+.counsel-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+
+@media (max-width: 820px) {
+  .counsel-fab { right: 14px; bottom: 14px; padding: 10px 14px 10px 12px; }
+  .entry-card { padding: 26px 22px; }
+  .entry-card h1 { font-size: 24px; }
+}
+
+/* ===========================================================================
+   Procurement documents.
+   Deliberately quieter than the rest of the interface: white sheet, hairline
+   rules, tabular figures, no accent fills. It should read as a document a
+   finance team would file, not as another product card.
+   =========================================================================== */
+
+.doc {
+  background: #fff; border: 1px solid var(--line-strong); border-radius: 2px;
+  padding: 30px 34px; color: var(--ink-1);
+}
+
+.doc-head {
+  display: flex; align-items: flex-start; gap: 20px;
+  padding-bottom: 18px; border-bottom: 2px solid var(--ink-1); margin-bottom: 18px;
+}
+.doc-title { font-size: 20px; font-weight: 650; letter-spacing: -.02em; }
+.doc-sub { font-size: 13px; color: var(--ink-3); margin-top: 3px; }
+.doc-stamp {
+  margin-left: auto; flex: none; align-self: flex-start;
+  font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .07em;
+  padding: 6px 11px; border: 1.5px solid; border-radius: 2px; white-space: nowrap;
+}
+.doc-stamp.pending { color: var(--amber); border-color: var(--amber); background: var(--amber-wash); }
+.doc-stamp.done { color: var(--pine); border-color: var(--pine); background: var(--pine-wash); }
+
+.doc-meta { display: flex; flex-wrap: wrap; gap: 28px; margin-bottom: 22px; }
+.doc-meta > div { display: flex; flex-direction: column; gap: 2px; }
+.dm-k { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-4); font-weight: 600; }
+.dm-v { font-size: 13.5px; font-weight: 550; font-variant-numeric: tabular-nums; font-family: var(--mono); }
+
+.doc-parties {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+  padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  margin-bottom: 22px;
+}
+.dp-role { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-4); font-weight: 600; margin-bottom: 5px; }
+.dp-name { font-size: 15px; font-weight: 600; }
+.dp-line { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; word-break: break-all; }
+
+.doc-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+.doc-table th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-4); font-weight: 600; padding: 0 0 8px; border-bottom: 1px solid var(--line-strong);
+}
+.doc-table td { padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+.doc-table .right { text-align: right; }
+.doc-table tfoot td { border-bottom: 0; padding: 7px 0; color: var(--ink-2); font-size: 13.5px; }
+.doc-table tfoot tr:first-child td { padding-top: 14px; }
+.doc-table .doc-total td {
+  border-top: 2px solid var(--ink-1); padding-top: 12px; margin-top: 6px;
+  font-size: 17px; font-weight: 650; color: var(--ink-1);
+}
+.doc-table .doc-strike td { color: var(--ink-4); }
+.doc-table .doc-strike td:last-child { text-decoration: line-through; }
+.doc-fine { font-size: 12px; color: var(--ink-4); margin-top: 2px; font-family: var(--mono); }
+.doc-table .pos { color: var(--pine); }
+
+.doc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 22px; }
+.doc-h {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-4); font-weight: 600; padding-bottom: 7px;
+  border-bottom: 1px solid var(--line); margin-bottom: 10px;
+}
+.doc-dl { display: grid; grid-template-columns: 108px 1fr; gap: 6px 14px; margin: 0; }
+.doc-dl dt { font-size: 13px; color: var(--ink-3); }
+.doc-dl dd { font-size: 13px; margin: 0; color: var(--ink-1); }
+.doc-dl dd.mono { font-family: var(--mono); font-size: 12px; word-break: break-all; }
+
+.doc-checks ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.doc-checks li {
+  display: grid; grid-template-columns: 18px auto 1fr; gap: 10px; align-items: baseline;
+  font-size: 13.5px; padding: 7px 0; border-bottom: 1px dashed var(--line);
+}
+.doc-checks li:last-child { border-bottom: 0; }
+.doc-checks .ck { font-weight: 700; }
+.doc-checks li.pass .ck { color: var(--pine); }
+.doc-checks li.fail .ck { color: var(--crimson); }
+.doc-checks .ck-detail { color: var(--ink-3); font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.doc-foot {
+  display: flex; align-items: flex-start; gap: 20px; margin-top: 24px;
+  padding-top: 16px; border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--ink-3); line-height: 1.55;
+}
+.doc-foot .btn { margin-left: auto; flex: none; }
+
+@media (max-width: 900px) {
+  .doc { padding: 22px 18px; }
+  .doc-parties, .doc-cols { grid-template-columns: 1fr; gap: 18px; }
+  .doc-checks li { grid-template-columns: 18px 1fr; }
+  .doc-checks .ck-detail { grid-column: 2; text-align: left; }
+}
+
+
+/* ===========================================================================
+   Motion.
+
+   One easing curve and three durations, used everywhere. Motion is reserved for
+   moments where something actually changed state: money moving, a limit being
+   hit, a decision being handed to a person. Hovers, cards and page loads are not
+   animated, because animating everything is how motion stops meaning anything.
+
+   No 3D library. Depth here is CSS perspective on a handful of elements that
+   genuinely benefit from it, which keeps the bundle small and the demo reliable.
+   =========================================================================== */
+
+:root {
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --ease-firm: cubic-bezier(.4, 0, .2, 1);
+  --t-quick: 160ms;
+  --t-base: 300ms;
+  --t-slow: 520ms;
+}
+
+/* Staggered reveal used by the entry authority chain. */
+@keyframes riseIn {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+.rise { animation: riseIn var(--t-slow) var(--ease) both; }
+.rise-1 { animation-delay: 40ms; }
+.rise-2 { animation-delay: 130ms; }
+.rise-3 { animation-delay: 220ms; }
+.rise-4 { animation-delay: 310ms; }
+
+/* Entry: the authority chain assembles top to bottom, so the relationship reads
+   before any copy is. */
+.hc-row, .hc-sep, .hc-caps { animation: riseIn 420ms var(--ease) both; }
+.hc-row:first-of-type { animation-delay: 60ms; }
+.hc-sep { animation-delay: 180ms; }
+.hc-row:nth-of-type(2) { animation-delay: 260ms; }
+.hc-caps { animation-delay: 360ms; }
+
+/* --------------------------------------------------------- amount flow --- */
+/* Escrow shown as three planes at different depths. Funds are a single value
+   card that descends into the locked plane and leaves it on release. */
+
+.flow3d {
+  perspective: 1000px;
+  padding: 6px 0 2px;
+  margin-bottom: 18px;
+}
+.flow3d-stage {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  transform-style: preserve-3d;
+}
+
+.plane {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform var(--t-base) var(--ease),
+              border-color var(--t-base) var(--ease),
+              background var(--t-base) var(--ease),
+              box-shadow var(--t-base) var(--ease);
+}
+.plane .p-role {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-4); font-weight: 600;
+}
+.plane .p-name { font-size: 14px; font-weight: 550; margin-top: 1px; }
+.plane .p-amt {
+  margin-left: auto; font-size: 15px; font-weight: 600;
+  font-variant-numeric: tabular-nums; letter-spacing: -.015em;
+}
+
+/* the middle plane sits lower and slightly back while it holds funds */
+.plane.escrow.holding {
+  transform: translateZ(-26px) translateY(2px);
+  border-color: var(--amber-line);
+  background: var(--amber-wash);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+}
+.plane.escrow.released {
+  transform: none;
+  border-color: var(--pine-line);
+  background: var(--pine-wash);
+}
+.plane.settled { border-color: var(--pine-line); background: var(--pine-wash); }
+.plane.dim { opacity: .55; }
+
+.plane-link {
+  height: 16px; margin: -6px 0 -6px 22px;
+  border-left: 1px solid var(--line-strong);
+  position: relative;
+}
+.plane-link.active::after {
+  content: ""; position: absolute; left: -3px; top: 0;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--pine);
+  animation: dropDown 900ms var(--ease-firm) infinite;
+}
+@keyframes dropDown {
+  from { transform: translateY(0); opacity: 0; }
+  30%  { opacity: 1; }
+  to   { transform: translateY(14px); opacity: 0; }
+}
+
+.lockchip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .02em;
+  color: var(--amber); margin-left: auto;
+}
+.lockchip.released { color: var(--pine); }
+
+/* ------------------------------------------------------- ceiling meter --- */
+/* The attack. A bar advances toward a hard stop and is refused there. The
+   numbers stay readable the whole time; motion never covers the result. */
+
+.meter3d { margin: 14px 0 4px; }
+.meter3d-track {
+  position: relative; height: 34px;
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--r); overflow: hidden;
+}
+.meter3d-fill {
+  position: absolute; inset: 0 auto 0 0;
+  background: var(--pine-wash); border-right: 2px solid var(--pine);
+  width: 0; transition: width var(--t-slow) var(--ease);
+}
+.meter3d-attempt {
+  position: absolute; inset: 0 auto 0 0;
+  background: repeating-linear-gradient(-45deg, var(--crimson-wash), var(--crimson-wash) 6px, transparent 6px, transparent 12px);
+  border-right: 2px solid var(--crimson);
+  width: 0;
+}
+.meter3d-attempt.run { animation: pushAndRefuse 1100ms var(--ease-firm) forwards; }
+@keyframes pushAndRefuse {
+  0%   { width: 0; }
+  55%  { width: var(--stop-at); }
+  70%  { width: calc(var(--stop-at) + 6px); }
+  100% { width: var(--stop-at); }
+}
+.meter3d-wall {
+  position: absolute; top: -3px; bottom: -3px;
+  width: 3px; background: var(--ink-1); border-radius: 1px;
+}
+.meter3d-wall.struck { animation: wallShake 380ms var(--ease-firm); }
+@keyframes wallShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(2px); }
+  60% { transform: translateX(-1px); }
+}
+.meter3d-legend {
+  display: flex; gap: 20px; margin-top: 9px; flex-wrap: wrap;
+  font-size: 12.5px; color: var(--ink-3);
+}
+.meter3d-legend b {
+  display: block; font-size: 15px; color: var(--ink-1);
+  font-variant-numeric: tabular-nums; font-weight: 600; margin-top: 1px;
+}
+.meter3d-legend .bad b { color: var(--crimson); }
+.meter3d-legend .cap b { color: var(--ink-1); }
+
+/* ------------------------------------------------ escalation comparison -- */
+
+.escal { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0 4px; }
+.escal-card {
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--surface); padding: 13px 15px;
+  transition: transform var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+}
+.escal-card .ec-k {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-4); font-weight: 600;
+}
+.escal-card .ec-v {
+  font-size: 21px; font-weight: 650; margin-top: 3px;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+.escal-card .ec-note { font-size: 12px; color: var(--ink-3); margin-top: 5px; }
+.escal-card.agent.inflated { border-color: var(--crimson-line); background: var(--crimson-wash); }
+.escal-card.agent.inflated .ec-v { color: var(--crimson); }
+.escal-card.buyer {
+  border-color: var(--pine-line); background: var(--pine-wash);
+  position: relative;
+}
+.escal-card.buyer .ec-v { color: var(--pine); }
+.escal-card.buyer.held { animation: holdFirm 600ms var(--ease); }
+@keyframes holdFirm {
+  0%, 100% { transform: none; }
+  40% { transform: scale(1.012); }
+}
+
+/* --------------------------------------------------------- settlement ---- */
+
+.tick { width: 22px; height: 22px; flex: none; }
+.tick path {
+  fill: none; stroke: var(--pine); stroke-width: 2.4;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 26; stroke-dashoffset: 26;
+  animation: drawTick 420ms var(--ease) 80ms forwards;
+}
+@keyframes drawTick { to { stroke-dashoffset: 0; } }
+
+/* Numbers that change as a result of an action settle rather than jump. */
+.num-shift { transition: color var(--t-base) var(--ease); }
+
+@media (max-width: 820px) {
+  .escal { grid-template-columns: 1fr; }
+}
+
+/* Motion is decoration on top of a working interface. Removing it must never
+   remove information. */
+@media (prefers-reduced-motion: reduce) {
+  .rise, .hc-row, .hc-sep, .hc-caps,
+  .meter3d-attempt.run, .meter3d-wall.struck,
+  .escal-card.buyer.held, .tick path {
+    animation: none !important;
+  }
+  .tick path { stroke-dashoffset: 0; }
+  .meter3d-attempt.run { width: var(--stop-at); }
+  .plane, .plane.escrow.holding, .escal-card { transition: none; transform: none; }
+  .plane.escrow.holding { transform: none; }
+  .plane-link.active::after { animation: none; opacity: 1; }
+}
+
+/* --- Corrections from reviewing the rendered build ----------------------- */
+
+/* The primary action was sitting below the fold on a 1440x780 laptop. */
+.hero.compact { padding-bottom: 20px; margin-bottom: 20px; }
+.hero.compact .hero-copy h1 { font-size: 27px; max-width: 19ch; margin: 6px 0 10px; }
+.hero.compact .hero-copy p { font-size: 14px; max-width: 54ch; }
+.req-section .section-head { margin-bottom: 10px; }
+
+/* The floating control was covering the last card in the right column. */
+.context { padding-bottom: 96px; }
+
+.ctx-empty {
+  font-size: 12.5px; color: var(--ink-3); line-height: 1.55; padding: 2px 0 2px;
+}
+
+/* Upcoming stages were indistinguishable from completed ones. */
+.stage:not(.done):not(.active) { color: var(--ink-4); }
+.stage:not(.done):not(.active) .stage-n { border-style: dashed; }
+.stage.done .stage-label { color: var(--ink-2); }
+.stage.active .stage-label { font-weight: 600; }
+.stage.active .stage-n {
+  box-shadow: 0 0 0 3px var(--pine-wash);
+  border-width: 1.5px;
+}
+
+/* Sample requests read better as one scannable column than truncated pills. */
+.samples { flex-direction: column; gap: 5px; }
+.sample {
+  width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 8px 11px; font-size: 12.5px;
+}
+
+/* The right column is taller than the viewport, so its last card ended up under
+   the floating control. Scroll it inside its own sticky pane and keep a gutter. */
+.context {
+  max-height: calc(100vh - 52px);
+  overflow-y: auto;
+  padding-bottom: 104px;
+  scrollbar-width: thin;
+}
+.context::-webkit-scrollbar { width: 6px; }
+.context::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+.context::-webkit-scrollbar-track { background: transparent; }
+
+/* Entry: the headline was breaking with a single orphaned word, and the facts
+   row sat flush to the card edge instead of aligning with its text column. */
+.entry-card { max-width: 660px; }
+.entry-card h1 { font-size: 30px; max-width: 24ch; }
+.entry-facts { max-width: 660px; padding: 0 36px; }
+
+@media (max-width: 720px) {
+  .entry-facts { padding: 0 22px; }
+}
+
+/* ------------------------------------------------------------- signing --- */
+
+.signbox {
+  margin-top: 16px; border: 1px solid var(--line-strong); border-radius: var(--r-lg);
+  background: var(--surface); padding: 18px 20px;
+}
+.signbox-head {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-3); font-weight: 600; margin-bottom: 12px;
+}
+.signbox-terms {
+  display: grid; gap: 0; border: 1px solid var(--line); border-radius: var(--r);
+  overflow: hidden; margin-bottom: 14px;
+}
+.signbox-terms > div {
+  display: flex; justify-content: space-between; gap: 16px;
+  padding: 10px 13px; border-bottom: 1px solid var(--line); font-size: 13.5px;
+}
+.signbox-terms > div:last-child { border-bottom: 0; }
+.signbox-terms > div:nth-child(odd) { background: var(--surface-sunk); }
+.signbox-terms .k { color: var(--ink-3); }
+.signbox-terms .v { font-weight: 550; font-variant-numeric: tabular-nums; text-align: right; }
+.signbox-terms .v.strong { font-size: 16px; font-weight: 650; }
+
+.signbox-check {
+  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+  font-size: 13.5px; color: var(--ink-2); margin-bottom: 14px; line-height: 1.5;
+}
+.signbox-check input { margin-top: 2px; width: 15px; height: 15px; accent-color: var(--pine); flex: none; }
+
+.signbox-sign { display: flex; gap: 10px; flex-wrap: wrap; }
+.signbox-sign input {
+  flex: 1; min-width: 220px; border: 1px solid var(--line-strong); border-radius: var(--r);
+  padding: 10px 13px; font: inherit; font-size: 14px; background: var(--surface);
+  font-family: var(--font-sign, inherit);
+}
+.signbox-sign input:focus { outline: 2px solid var(--pine); outline-offset: 1px; border-color: transparent; }
+.signbox-note { font-size: 12px; color: var(--ink-4); margin-top: 11px; }
+
+.signed {
+  margin-top: 16px; border: 1px solid var(--pine-line); border-radius: var(--r-lg);
+  background: var(--pine-wash); padding: 16px 18px;
+}
+.signed-head { display: flex; align-items: center; gap: 11px; }
+.signed-title { font-size: 14.5px; font-weight: 600; }
+.signed-sub { font-size: 12.5px; color: var(--ink-2); margin-top: 1px; }
+.signed-hash {
+  display: flex; gap: 12px; align-items: baseline; margin-top: 12px;
+  padding-top: 12px; border-top: 1px solid var(--pine-line);
+}
+.signed-hash .k {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-3); font-weight: 600; flex: none;
+}
+.signed-hash .v { font-size: 11.5px; word-break: break-all; color: var(--ink-2); }
+.signed-note { font-size: 12px; color: var(--ink-2); margin-top: 10px; line-height: 1.55; }
+
+@media (max-width: 820px) {
+  .signbox-terms > div { flex-direction: column; gap: 2px; }
+  .signbox-terms .v { text-align: left; }
+}
+</style></head>
+<body><div class="app">
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">C</span>Covenant<span class="brand-sub">Recorded run</span></div>
+  <div class="topbar-right">
+    <div class="chainchip"><span class="dot"></span><span>EVM · chain 31337</span></div>
+    <div class="wallet-pill"><span>0xFFcf8FDE…C409f0</span></div>
+  </div>
+</header>
+<div class="workspace" style="grid-template-columns:minmax(0,1fr)">
+<main class="main" style="max-width:1080px;margin:0 auto">
+
+  <div class="banner info" style="margin-bottom:20px">
+    <span><b>Offline snapshot.</b> Every figure and transaction hash below comes from a real recorded run against a live EVM.
+    This file is self-contained - no server, no network, no dependencies. Used as a demo fallback.</span>
+  </div>
+
+  <div class="section-head"><div class="eyebrow">Step 1 · Request</div><h2>Buyer request</h2></div>
+  <div class="composer" style="margin-bottom:22px"><div style="padding:16px;font-size:14.5px">I need 500 kg of bottle-grade PET resin. Budget is $1,200 total. Delivery within 14 days. Must be FDA food-contact certified.</div></div>
+
+  <div class="section-head"><div class="eyebrow">Step 2 · Understood requirements</div><h2>Constraints the agent will hold</h2></div>
+  <div class="constraint-grid" style="margin-bottom:22px"><div class="constraint hard"><div class="k">Material</div><div class="v">PET resin</div></div><div class="constraint hard"><div class="k">Grade</div><div class="v">bottle-grade</div></div><div class="constraint hard"><div class="k">Quantity</div><div class="v">500 kg</div></div><div class="constraint hard"><div class="k">Budget ceiling</div><div class="v">$1,200</div></div><div class="constraint hard"><div class="k">Unit ceiling</div><div class="v">$2.40/kg</div></div><div class="constraint hard"><div class="k">Delivery window</div><div class="v">14 days</div></div><div class="constraint hard"><div class="k">Certification</div><div class="v">FDA-FOOD-CONTACT</div></div></div>
+
+  <div class="section-head"><div class="eyebrow">Step 3 · Matching</div>
+    <h2>7 listings screened · 5 eligible · 3 shortlisted</h2>
+    <p class="sub">Structural failures - certification, minimum order, capacity - cannot be negotiated away, so those suppliers are never taken to negotiation.</p></div>
+  <div class="table-wrap" style="margin-bottom:22px"><table class="grid">
+    <thead><tr><th>Supplier</th><th class="right">List total</th><th class="right">Lead time</th><th class="right">Quality</th><th class="right">On-time</th><th>Assessment</th></tr></thead>
+    <tbody>
+    <tr class="">
+      <td><div class="sup-name">Baltic Resin Works</div><div class="sup-meta">Gdansk, Poland · PET-BG-002 · bottle-grade</div></td>
+      <td class="right num">$1,180<div class="sup-meta">$2.36/kg</div></td>
+      <td class="right num">18d</td>
+      <td class="right num">91</td>
+      <td class="right num">88%</td>
+      <td><span class="badge warn">negotiable · deadline</span>
+        <div class="satisfied" style="margin-top:4px"><span class="marker">·</span><span>Lead time 18 days misses the 14-day deadline by 4</span></div>
+      </td>
+    </tr>
+    <tr class="winner">
+      <td><div class="sup-name">Anhui Konsheng Materials</div><div class="sup-meta">Hefei, China · PET-BG-003 · bottle-grade</div></td>
+      <td class="right num">$1,250<div class="sup-meta">$2.50/kg</div></td>
+      <td class="right num">12d</td>
+      <td class="right num">94</td>
+      <td class="right num">96%</td>
+      <td><span class="badge warn">negotiable · budget</span>
+        <div class="satisfied" style="margin-top:4px"><span class="marker">·</span><span>List $1,250 is $50 over the $1,200 budget</span></div>
+      </td>
+    </tr>
+    <tr class="">
+      <td><div class="sup-name">Meridian Polymers</div><div class="sup-meta">Johor Bahru, Malaysia · PET-BG-001 · bottle-grade</div></td>
+      <td class="right num">$1,300<div class="sup-meta">$2.60/kg</div></td>
+      <td class="right num">10d</td>
+      <td class="right num">96</td>
+      <td class="right num">94%</td>
+      <td><span class="badge warn">negotiable · budget</span>
+        <div class="satisfied" style="margin-top:4px"><span class="marker">·</span><span>List $1,300 is $100 over the $1,200 budget</span></div>
+      </td>
+    </tr>
+    <tr class="">
+      <td><div class="sup-name">Veracruz Empaques</div><div class="sup-meta">Veracruz, Mexico · PET-BG-007 · bottle-grade</div></td>
+      <td class="right num">$1,360<div class="sup-meta">$2.72/kg</div></td>
+      <td class="right num">8d</td>
+      <td class="right num">93</td>
+      <td class="right num">90%</td>
+      <td><span class="badge warn">negotiable · budget</span>
+        <div class="satisfied" style="margin-top:4px"><span class="marker">·</span><span>List $1,360 is $160 over the $1,200 budget</span></div>
+      </td>
+    </tr>
+    <tr class="">
+      <td><div class="sup-name">Rotterdam Packaging Supply</div><div class="sup-meta">Rotterdam, Netherlands · PET-BG-005 · bottle-grade</div></td>
+      <td class="right num">$1,525<div class="sup-meta">$3.05/kg</div></td>
+      <td class="right num">6d</td>
+      <td class="right num">98</td>
+      <td class="right num">98%</td>
+      <td><span class="badge warn">negotiable · budget</span>
+        <div class="satisfied" style="margin-top:4px"><span class="marker">·</span><span>List $1,525 is $325 over the $1,200 budget</span></div>
+      </td>
+    </tr>
+    <tr class="excluded">
+      <td><div class="sup-name">Gujarat Polychem</div><div class="sup-meta">Vadodara, India · PET-IG-004 · industrial-grade</div></td>
+      <td class="right num">$1,090<div class="sup-meta">$2.18/kg</div></td>
+      <td class="right num">9d</td>
+      <td class="right num">82</td>
+      <td class="right num">91%</td>
+      <td><span class="badge bad">excluded</span>
+        <div class="violation" style="margin-top:4px"><span class="marker">✕</span><span>Supplies industrial-grade, request specifies bottle-grade</span></div><div class="violation" style="margin-top:4px"><span class="marker">✕</span><span>Minimum order 1,000 kg exceeds the 500 kg required</span></div><div class="violation" style="margin-top:4px"><span class="marker">✕</span><span>Not certified FDA-FOOD-CONTACT</span></div>
+      </td>
+    </tr>
+    <tr class="excluded">
+      <td><div class="sup-name">Cebu Micro Plastics</div><div class="sup-meta">Cebu, Philippines · PET-BG-006 · bottle-grade</div></td>
+      <td class="right num">$1,120<div class="sup-meta">$2.24/kg</div></td>
+      <td class="right num">15d</td>
+      <td class="right num">78</td>
+      <td class="right num">79%</td>
+      <td><span class="badge bad">excluded</span>
+        <div class="violation" style="margin-top:4px"><span class="marker">✕</span><span>Not certified FDA-FOOD-CONTACT</span></div><div class="satisfied" style="margin-top:4px"><span class="marker">·</span><span>Lead time 15 days misses the 14-day deadline by 1</span></div>
+      </td>
+    </tr></tbody></table></div>
+
+  <div class="section-head"><div class="eyebrow">Step 4 · Negotiation</div><h2>Bounded bargaining</h2>
+    <p class="sub">The agent cannot see supplier floor prices. It is hard-capped at $2.40/kg and walks away rather than exceeding it.</p></div>
+  <div class="neg-grid" style="margin-bottom:22px">
+    <article class="neg-card failed">
+      <header class="neg-head">
+        <div><div class="who">Baltic Resin Works</div><div class="where">1 round</div></div>
+        <div class="right"><span class="badge bad">no deal · schedule</span></div>
+      </header>
+      <div class="thread">
+        
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Opening negotiation with Baltic Resin Works for 500 kg PET resin.</div><div class="turn-why">Authorised ceiling $2.40/kg (from the $1,200 budget). List price $2.36/kg.</div></div>
+            <div class="turn-price"></div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Requesting delivery in 14 days instead of 18.</div><div class="turn-why">The 14-day deadline is a hard constraint; 4 days must come out of the schedule.</div></div>
+            <div class="turn-price"></div>
+          </div>
+          <div class="turn  reject">
+            <div class="turn-actor supplier">Supplier</div>
+            <div><div class="turn-msg">Cannot compress by 4 days. Maximum achievable is 3 days.</div><div class="turn-why">Production schedule allows at most 3 days of compression.</div></div>
+            <div class="turn-price"></div>
+          </div>
+          <div class="turn  reject">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Ending negotiation - the deadline cannot be met.</div><div class="turn-why">Best achievable delivery is 15 days against a hard 14-day requirement.</div></div>
+            <div class="turn-price"></div>
+          </div>
+      </div>
+      <div class="ledger"><div class="item" style="color:var(--crimson)">Best achievable lead time 15 days still misses the 14-day deadline.</div></div>
+    </article>
+    <article class="neg-card agreed">
+      <header class="neg-head">
+        <div><div class="who">Anhui Konsheng Materials</div><div class="where">3 rounds</div></div>
+        <div class="right"><span class="badge ok">agreement reached</span></div>
+      </header>
+      <div class="thread">
+        
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Opening negotiation with Anhui Konsheng Materials for 500 kg PET resin.</div><div class="turn-why">Authorised ceiling $2.40/kg (from the $1,200 budget). List price $2.50/kg.</div></div>
+            <div class="turn-price"></div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor supplier">Supplier</div>
+            <div><div class="turn-msg">Standard quote $2.50/kg, 12 day lead time.</div></div>
+            <div class="turn-price">$2.50/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Offering $2.20/kg - $1,100 total.</div><div class="turn-why">Opening below the ceiling to leave room to concede.</div></div>
+            <div class="turn-price">$2.20/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor supplier">Supplier</div>
+            <div><div class="turn-msg">Countering at $2.44/kg.</div></div>
+            <div class="turn-price">$2.44/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Offering $2.30/kg - $1,150 total.</div><div class="turn-why">Conceding toward the ceiling; still $0.10/kg of authorised headroom.</div></div>
+            <div class="turn-price">$2.30/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor supplier">Supplier</div>
+            <div><div class="turn-msg">Countering at $2.40/kg.</div></div>
+            <div class="turn-price">$2.40/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Offering $2.35/kg - $1,175 total.</div><div class="turn-why">Conceding toward the ceiling; still $0.05/kg of authorised headroom.</div></div>
+            <div class="turn-price">$2.35/kg</div>
+          </div>
+          <div class="turn settle ">
+            <div class="turn-actor supplier">Supplier</div>
+            <div><div class="turn-msg">Accepted at $2.35/kg.</div></div>
+            <div class="turn-price">$2.35/kg</div>
+          </div>
+          <div class="turn settle ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Agreed: $1,175 for 500 kg, delivery in 12 days.</div><div class="turn-why">Saved $75 against list price.</div></div>
+            <div class="turn-price"></div>
+          </div>
+      </div>
+      
+        <div class="ledger">
+          <div class="item">Agreed total<b>$1,175</b></div>
+          <div class="item">Unit price<b>$2.35</b></div>
+          <div class="item">Delivery<b>12 days</b></div>
+          <div class="item">Saved vs list<b class="pos">$75 · 6%</b></div>
+          <div class="item">Budget headroom<b>$25</b></div>
+        </div>
+    </article>
+    <article class="neg-card failed">
+      <header class="neg-head">
+        <div><div class="who">Meridian Polymers</div><div class="where">4 rounds</div></div>
+        <div class="right"><span class="badge bad">no deal · price</span></div>
+      </header>
+      <div class="thread">
+        
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Opening negotiation with Meridian Polymers for 500 kg PET resin.</div><div class="turn-why">Authorised ceiling $2.40/kg (from the $1,200 budget). List price $2.60/kg.</div></div>
+            <div class="turn-price"></div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor supplier">Supplier</div>
+            <div><div class="turn-msg">Standard quote $2.60/kg, 10 day lead time.</div></div>
+            <div class="turn-price">$2.60/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Offering $2.26/kg - $1,128 total.</div><div class="turn-why">Opening below the ceiling to leave room to concede.</div></div>
+            <div class="turn-price">$2.26/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor supplier">Supplier</div>
+            <div><div class="turn-msg">Countering at $2.57/kg.</div></div>
+            <div class="turn-price">$2.57/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Offering $2.33/kg - $1,164 total.</div><div class="turn-why">Conceding toward the ceiling; still $0.07/kg of authorised headroom.</div></div>
+            <div class="turn-price">$2.33/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor supplier">Supplier</div>
+            <div><div class="turn-msg">Countering at $2.55/kg.</div></div>
+            <div class="turn-price">$2.55/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Offering $2.36/kg - $1,182 total.</div><div class="turn-why">Conceding toward the ceiling; still $0.04/kg of authorised headroom.</div></div>
+            <div class="turn-price">$2.36/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor supplier">Supplier</div>
+            <div><div class="turn-msg">Countering at $2.53/kg.</div></div>
+            <div class="turn-price">$2.53/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Offering $2.38/kg - $1,191 total.</div><div class="turn-why">Conceding toward the ceiling; still $0.02/kg of authorised headroom.</div></div>
+            <div class="turn-price">$2.38/kg</div>
+          </div>
+          <div class="turn  ">
+            <div class="turn-actor supplier">Supplier</div>
+            <div><div class="turn-msg">Countering at $2.52/kg.</div></div>
+            <div class="turn-price">$2.52/kg</div>
+          </div>
+          <div class="turn  reject">
+            <div class="turn-actor agent">Agent</div>
+            <div><div class="turn-msg">Ending negotiation - no agreement within the authorised budget.</div><div class="turn-why">Supplier's best is $2.52/kg against an authorised ceiling of $2.40/kg.</div></div>
+            <div class="turn-price"></div>
+          </div>
+      </div>
+      <div class="ledger"><div class="item" style="color:var(--crimson)">Best offer $1,261.65 exceeds the $1,200 budget by $62.</div></div>
+    </article></div>
+
+  <div class="section-head"><div class="eyebrow">Step 5 · Recommendation</div><h2>Recommended deal</h2></div>
+  <div class="rec" style="margin-bottom:22px">
+    <header class="rec-head">
+      <div><div class="eyebrow">Supplier</div><h3>Anhui Konsheng Materials</h3>
+        <div style="font-size:12px;color:rgba(255,255,255,.72);margin-top:2px">Hefei, China · PET-BG-003</div></div>
+      <div class="right"><div class="amt">$1,175</div><div class="amt-sub">$2.35/kg · 500 kg</div></div>
+    </header>
+    <div class="rec-metrics">
+      <div class="rec-metric"><div class="k">Delivery</div><div class="v">12<small>days</small></div></div>
+      <div class="rec-metric"><div class="k">Negotiated saving</div><div class="v" style="color:var(--pine)">$75<small>6%</small></div></div>
+      <div class="rec-metric"><div class="k">Under budget by</div><div class="v">$25</div></div>
+      <div class="rec-metric"><div class="k">On-time record</div><div class="v">96<small>%</small></div></div>
+    </div>
+    <div class="why"><div class="eyebrow">Why this supplier</div><ul>
+      <li><span class="tick">✓</span><span><span class="kind">budget</span>$1,175 against a $1,200 ceiling - $25 under budget.</span></li><li><span class="tick">✓</span><span><span class="kind">deadline</span>Delivery in 12 days against a 14-day deadline.</span></li><li><span class="tick">✓</span><span><span class="kind">compliance</span>Holds every required certification: FDA-FOOD-CONTACT.</span></li><li><span class="tick">✓</span><span><span class="kind">negotiation</span>Negotiated $75 below list price (6%) across 3 rounds.</span></li><li><span class="tick">✓</span><span><span class="kind">reputation</span>96% on-time delivery record, 0 prior disputes, 9 years trading.</span></li><li><span class="tick">✓</span><span><span class="kind">alternatives</span>The other 2 shortlisted suppliers could not meet schedule or price constraints.</span></li>
+    </ul></div>
+    <div class="rejected-note">
+      <div class="row"><span class="x">✕</span><span><b>Baltic Resin Works</b> - Best achievable lead time 15 days still misses the 14-day deadline.</span></div><div class="row"><span class="x">✕</span><span><b>Meridian Polymers</b> - Best offer $1,261.65 exceeds the $1,200 budget by $62.</span></div>
+      <div style="margin-top:6px;color:var(--ink-3)">2 cheaper listings were excluded before negotiation for failing a non-negotiable requirement (grade, moq, certification).</div>
+    </div>
+  </div>
+
+  <div class="section-head"><div class="eyebrow">Step 6 · Human approval</div><h2>Agent stopped here</h2>
+    <p class="sub">Nothing moved on-chain until a human approved these exact terms.</p></div>
+  <div class="approval" style="margin-bottom:22px"><div class="approval-body">
+    <div class="terms">
+      <div class="term-row"><span class="k">Supplier</span><span class="v">Anhui Konsheng Materials</span></div>
+      <div class="term-row"><span class="k">Total commitment</span><span class="v">$1,175.00 USDC</span></div>
+      <div class="term-row"><span class="k">Release condition</span><span class="v">Buyer confirms delivery</span></div>
+    </div>
+    <div class="guardrails"><h4>Agent spending limits - enforced on-chain</h4><ul>
+      <li>Per-deal cap <code>$1,200</code> · this deal <code>$1,175</code> ✓ within cap</li>
+      <li>The cap lives in the escrow contract, not the agent's code. Exceeding it reverts the transaction.</li>
+    </ul></div>
+  </div></div>
+
+  <div class="section-head"><div class="eyebrow">Step 7 · Spending ceiling</div><h2>The contract refuses to overspend</h2>
+    <p class="sub">The backend forwarded a deal above the authorised limit without checking it. The contract rejected it.</p></div>
+  <div class="ceiling" style="margin-bottom:22px">
+    <div class="ceiling-head"><span class="eyebrow">Authorised spend</span><span class="badge ok">enforced on-chain</span></div>
+    <div class="authority">
+      <div class="auth-party"><div class="k">Buyer</div><div class="v mono">0xFFcf8FDE…C409f0</div>
+        <ul class="auth-caps"><li><span class="yes">✓</span> Sets the limit</li><li><span class="yes">✓</span> Approves the deal</li><li><span class="yes">✓</span> Confirms delivery</li></ul></div>
+      <div class="auth-arrow">authorises</div>
+      <div class="auth-party agent"><div class="k">AI agent</div><div class="v mono">0x610Bb157…7C2b60</div>
+        <ul class="auth-caps"><li><span class="yes">✓</span> Can negotiate</li><li><span class="yes">✓</span> Can spend under the limit</li><li><span class="no">✕</span> Cannot change the limit</li></ul></div>
+    </div>
+    <div class="ceiling-track"><div class="ceiling-fill" style="width:97.9%"></div></div>
+    <div class="ceiling-figures">
+      <div class="cfig"><div class="k">Authorised limit</div><div class="v">$1,200</div></div>
+      <div class="cfig"><div class="k">Agent's final deal</div><div class="v strong">$1,175</div></div>
+      <div class="cfig"><div class="k">Remaining</div><div class="v pos">$25</div></div>
+    </div>
+    <div class="proof" style="margin-top:14px">
+      <div class="proof-head"><span class="proof-x">✕</span><span>Transaction rejected</span><span class="spacer"></span><span class="badge bad">reverted</span></div>
+      <div class="proof-rows">
+        <div><span class="k">Reason</span><span class="v mono">ExceedsPerDealCap</span></div>
+        <div><span class="k">Attempted</span><span class="v">$1,250 - $50 over the limit</span></div>
+        <div><span class="k">Contract limit</span><span class="v">$1,200</span></div>
+        <div><span class="k">Rejected by</span><span class="v mono">ProcurementEscrow.createDeal</span></div>
+        <div><span class="k">Failed tx</span><span class="v mono">0xc726e0dcc2a7bdaf4099f6c4107c490e9c32044ca292eef80fab97f1cf54151d</span></div>
+        <div><span class="k">State after</span><span class="v">unchanged - 0 deals, $0 committed</span></div>
+      </div>
+      <p class="proof-note">A compromised or malfunctioning agent still cannot spend beyond what the buyer authorised.</p>
+    </div>
+    <div class="proof" style="margin-top:12px">
+      <div class="proof-head"><span class="proof-x">✕</span><span>Escalation failed</span><span class="spacer"></span><span class="badge bad">mandate unchanged</span></div>
+      <div class="proof-rows">
+        <div><span class="k">Agent wrote</span><span class="v">a $1,000,000 policy - for its own address</span></div>
+        <div><span class="k">Buyer's ceiling</span><span class="v">$1,200 → $1,200 (unchanged)</span></div>
+        <div><span class="k">Then tried to spend</span><span class="v">$5,000 → ExceedsPerDealCap</span></div>
+      </div>
+      <p class="proof-note">The agent wrote a $1,000,000 policy - but only for itself. The buyer's policy is keyed to the buyer's address and is unchanged, so the agent still spends under the buyer's ceiling. Escalation is not blocked by a check; it is impossible to express.</p>
+    </div>
+  </div>
+
+  <div class="section-head"><div class="eyebrow">Step 8 · Escrow</div><h2>Deal #1 on-chain</h2></div>
+  <div class="card" style="margin-bottom:22px"><div class="card-body">
+    <div class="escrow-amount"><span class="v">$0.00</span><span class="cur">USDC remaining in escrow</span><span class="state"><span class="badge ok">released</span></span></div>
+    <div class="flow">
+      <div class="flow-step done"><span class="flow-node">✓</span><div><div class="flow-label">Funds locked in escrow</div><div class="flow-detail">$1,175.00 USDC held by contract</div></div><div class="flow-right"><span class="txlink">0xadb94c77…325a1f</span></div></div>
+      <div class="flow-step done"><span class="flow-node">✓</span><div><div class="flow-label">Delivery confirmed</div><div class="flow-detail">Within the agreed window</div></div><div class="flow-right"><span class="txlink">0xaee0ee4c…7d509f</span></div></div>
+      <div class="flow-step done"><span class="flow-node">✓</span><div><div class="flow-label">Payment released</div><div class="flow-detail">$1,175.00 USDC paid to supplier</div></div><div class="flow-right"><span class="txlink">0x0c60a909…2714e7</span></div></div>
+    </div>
+    <div class="terms" style="margin-top:16px">
+      <div class="term-row"><span class="k">Recipient</span><span class="v mono">0xd03ea8624C8C5987235048901fB614fDcA89b117</span></div>
+      <div class="term-row"><span class="k">Terms hash</span><span class="v mono">0x41c522d2cb30c31fd76150e2d519b3b55ab18904ca98917596937999f3852fa2</span></div>
+      <div class="term-row"><span class="k">Funding tx</span><span class="v mono">0xadb94c77aa8083a3d268073407884a0ed2c2c8b10df033126c7f05ccf8325a1f</span></div>
+      <div class="term-row"><span class="k">Block</span><span class="v">18 · gas 219,021</span></div>
+    </div>
+  </div></div>
+
+  <div class="section-head"><div class="eyebrow">Step 9 · Settlement</div><h2>Reputation updated on-chain</h2>
+    <p class="sub">Written by the escrow contract at the moment funds moved. It cannot be self-reported or bought.</p></div>
+  <div class="card"><div class="card-head"><span class="card-title">Anhui Konsheng Materials</span><span class="spacer"></span>
+    <span class="badge ok">settled · $1,175.00 paid</span></div>
+    <div class="card-body">
+      <div class="rep-delta"><div><div class="eyebrow">Reputation</div>
+        <div class="row" style="gap:12px;margin-top:4px">
+          <span class="rep-num before">50.00</span>
+          <span class="rep-arrow">→</span>
+          <span class="rep-num after">56.25</span>
+          <span class="rep-gain">+6.25</span>
+        </div></div></div>
+      <div class="rep-bar"><div class="rep-fill" style="width:56.25%"></div></div>
+      <div class="rep-stats">
+        <div class="rep-stat"><div class="k">Settled deals</div><div class="v">1</div></div>
+        <div class="rep-stat"><div class="k">Settled volume</div><div class="v">$1,175</div></div>
+        <div class="rep-stat"><div class="k">Settlement tx</div><div class="v mono" style="font-size:12px">0x0c60a909…2714e7</div></div>
+      </div>
+    </div></div>
+
+  <div class="section-head"><div class="eyebrow">Document</div><h2>Settlement record</h2>
+    <p class="sub">Issued after funds left escrow.</p></div>
+  <article class="doc" style="margin-bottom:26px">
+    <header class="doc-head">
+      <div><div class="doc-title">Settlement Record</div><div class="doc-sub">Issued after funds were released from escrow.</div></div>
+      <div class="doc-stamp done">Settled</div>
+    </header>
+    <div class="doc-meta">
+      <div><span class="dm-k">Reference</span><span class="dm-v">STL-20260813-E92F41</span></div>
+      <div><span class="dm-k">Deal</span><span class="dm-v">#1</span></div>
+      <div><span class="dm-k">Network</span><span class="dm-v">EVM chain 31337</span></div>
+    </div>
+    <div class="doc-parties">
+      <div class="doc-party"><div class="dp-role">Buyer</div><div class="dp-name">Buyer workspace</div>
+        <div class="dp-line">0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0</div></div>
+      <div class="doc-party"><div class="dp-role">Supplier</div><div class="dp-name">Anhui Konsheng Materials</div>
+        <div class="dp-line">Hefei, China</div>
+        <div class="dp-line">0xd03ea8624C8C5987235048901fB614fDcA89b117</div></div>
+    </div>
+    <table class="doc-table">
+      <thead><tr><th>Item</th><th class="right">Quantity</th><th class="right">Unit</th><th class="right">Amount</th></tr></thead>
+      <tbody><tr>
+        <td><b>bottle-grade PET resin</b><div class="doc-fine">PET-BG-003</div></td>
+        <td class="right num">500 kg</td>
+        <td class="right num">$2.35</td>
+        <td class="right num">$1,175.00</td>
+      </tr></tbody>
+      <tfoot>
+        <tr><td colspan="3">Paid to supplier</td><td class="right num">$1,175.00</td></tr>
+        <tr><td colspan="3">Platform fee (1.5%)</td><td class="right num">$17.63</td></tr>
+        <tr><td colspan="3">Saved against list price</td><td class="right num pos">$75.00</td></tr>
+        <tr class="doc-total"><td colspan="3">Settled</td><td class="right num">$1,175.00</td></tr>
+      </tfoot>
+    </table>
+    <div class="doc-cols">
+      <div><div class="doc-h">Delivery and approval</div><dl class="doc-dl">
+        <dt>Confirmed by</dt><dd>Buyer</dd>
+        <dt>On time</dt><dd>Yes</dd>
+        <dt>Approved by</dt><dd>Buyer</dd>
+      </dl></div>
+      <div><div class="doc-h">Settlement</div><dl class="doc-dl">
+        <dt>Release</dt><dd class="mono">0x0c60a909…2714e7</dd>
+        <dt>Funding</dt><dd class="mono">0xadb94c77…325a1f</dd>
+        <dt>Reputation</dt><dd>50.00 to <b>56.25</b></dd>
+      </dl></div>
+    </div>
+    <footer class="doc-foot"><span>Internal settlement record, not a tax invoice. Supplier records in this build are seeded demo data.</span></footer>
+  </article>
+
+  <div class="disclosure">
+    <b>What is real and what is simulated.</b> Contracts, transactions, escrow, gas and reputation writes are genuine EVM
+    execution - the same bytecode deploys to Base unchanged. The supplier catalogue is seeded demo data, supplier
+    counterparties are simulated agents holding private reservation prices, and delivery is confirmed by the buyer rather
+    than a logistics oracle. That last one bounds the reputation claim: the contract controls <b>when</b> reputation can be
+    written, but because a human attests delivery, a buyer and supplier acting together could still settle a deal that never
+    shipped. Oracle-backed proof of delivery is the fix, and it is not in this MVP.
+  </div>
+</main></div></div></body></html>
