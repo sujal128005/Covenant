@@ -452,7 +452,7 @@ The next priorities are:
 
 More detailed architecture, security and implementation notes are available in:
 
-`docs/Covenant_Technical_Documentation.pdf`
+`docs/Covenant_Technical_Documentation.pdf`(https://github.com/sujal128005/Covenant/blob/main/docs/Covenant_Technical_Documentation.pdf)
 
 ---
 
